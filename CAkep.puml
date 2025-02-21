@@ -1,0 +1,69 @@
+@startuml
+<style>
+    element {
+        MinimumWidth 100
+        MaximumWidth 180
+    }
+    .kondisi {
+        FontSize 9
+        Padding 5
+        LineStyle 2
+        BackGroundColor transparent
+        HorizontalAlignment center
+    }
+</style>
+skinparam defaultFontName "verdana"
+
+start
+:recordId_Acc = "001dM000002F6C8QAK";<<input>>
+
+:cur_Acc 
+----
+select top1 from Account 
+where Id = recordId_Acc;
+
+switch (cek Karyawan)
+case ()
+    :Big Size
+    ....
+    cur_Acc.NumberOfEmployees > 5000;<<kondisi>>
+    :varS_Rating = "Hot"; 
+case ()
+    :Small Size
+    ....
+    cur_Acc.NumberOfEmployees <= 5000;<<kondisi>>
+    :varS_Rating = "Warm"; 
+case ()
+    :NULL;<<kondisi>>
+    :varS_Rating = "Cold"; 
+    end
+endswitch
+
+:rst_Contact 
+----
+Select * from Contact 
+where AccountId = cur_Acc.Id;
+
+while(c : rst_Contact)
+    :c.IsPriorityRecord = True;
+endwhile
+
+:Update Contact 
+----
+rst_Contact;
+
+:Update Account 
+----
+Set Rating = varS_Rating,
+BillingCity = "Medan"
+where Id = recordId_Acc;
+
+:Upsert Account 
+----
+Set Name = "Jimmy",
+Type = cur_Acc.Type
+on conflict (Name) = "Jimmy";
+
+:varS_Rating;<<output>>
+stop
+@enduml

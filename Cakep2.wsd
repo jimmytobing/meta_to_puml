@@ -1,0 +1,52 @@
+@startuml
+<style>
+    element {
+        MinimumWidth 100
+        MaximumWidth 180
+    }
+    .kondisi {
+        FontSize 9
+        Padding 5
+        LineStyle 2
+        BackGroundColor transparent
+        HorizontalAlignment center
+    }
+</style>
+skinparam defaultFontName "verdana"
+start
+	:recordId_Acc = "001dM000002F6C8QAK";<<input>>
+
+	:cur_Acc 
+	----
+	select top1 from Account
+	where Id EqualTo recordId_Acc;
+
+	switch (cek Karyawan)
+	case ()
+		:Big Size
+		....
+		cur_Acc.NumberOfEmployees GreaterThan 5000.0;<<kondisi>>
+		:varS_Rating = "Hot";
+	case ()
+		:Small Size
+		....
+		cur_Acc.NumberOfEmployees LessThanOrEqualTo 5000.0;<<kondisi>>
+		:varS_Rating = "Warm";
+	case ()
+		:NULL;<<kondisi>>
+		:set_Rating_Cold;
+        end
+	endswitch
+
+    :rst_Contact 
+    ----
+    select * from Contact
+    where AccountId EqualTo cur_Acc.Id;
+
+    while(c : rst_Contact)
+        :set_IsPriorityRecord;
+    endwhile
+
+	:varS_Rating;<<output>>
+stop
+@enduml
