@@ -58,14 +58,12 @@ function proses(flow){
 
                 // Simpan koneksi
                 if(key.endsWith('decisions')){
-
                     // Default
                     if (elem.defaultConnector?.targetReference) {
                         connections[name+'.'+elem.defaultConnectorLabel] = elem.defaultConnector.targetReference;
                     }else{
                         connections[name+'.'+elem.defaultConnectorLabel] = 'end';
                     }
-
                     // Branch
                     const lstRules = Array.isArray(elem.rules) ? elem.rules : [elem.rules];
                     lstRules.forEach(r => {
@@ -77,8 +75,14 @@ function proses(flow){
                         }
                     });
 
-                }else if(key.endsWith('decisions')){
-                    
+                }else if(key.endsWith('loops')){
+                    if (elem.nextValueConnector?.targetReference) {
+                        connections[name+'.'+elem.defaultConnectorLabel] = elem.defaultConnector.targetReference;
+                    }else{
+                        connections[name+'.'+elem.defaultConnectorLabel] = 'end';
+                    }
+
+
                 }else if (elem.connector?.targetReference) {
                     connections[name] = elem.connector.targetReference;
                 }else {

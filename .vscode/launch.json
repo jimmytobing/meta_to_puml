@@ -9,11 +9,11 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Debug SfToPuml.js",
+            "name": "Debug Node.js",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/SfToPuml.js"
+            "program": "${workspaceFolder}/JimPuml.js"
         }
     ]
 }
