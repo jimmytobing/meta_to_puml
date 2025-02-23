@@ -6,21 +6,21 @@ const variables = {};
 const elements = {};
 const connections = {};
 const plantuml = [
-    "@startuml",
-    "<style>",
-    "    element {",
-    "        MinimumWidth 100",
-    "        MaximumWidth 180",
-    "    }",
-    "    .kondisi {",
-    "        FontSize 9",
-    "        Padding 5",
-    "        LineStyle 2",
-    "        BackGroundColor transparent",
-    "        HorizontalAlignment center",
-    "    }",
-    "</style>",
-    'skinparam defaultFontName "verdana"'
+    '@startuml',
+    '<style>',
+    '    element {',
+    '        MinimumWidth 100',
+    '        MaximumWidth 180',
+    '    }',
+    '    .kondisi {',
+    '        FontSize 9',
+    '        Padding 5',
+    '        LineStyle 2',
+    '        BackGroundColor transparent',
+    '        HorizontalAlignment center',
+    '    }',
+    '</style>',
+    'skinparam defaultFontName "verdana"' // Menggunakan single-quote untuk string
 ];
 
 async function parseSalesforceFlow(xmlFile) {
@@ -32,7 +32,7 @@ async function parseSalesforceFlow(xmlFile) {
     return flow;
 }
 
-function proses(flow){
+function proses(flow) {
     // OK : Ekstrak variabel
     if (flow.variables) {
         const vars = Array.isArray(flow.variables) ? flow.variables : [flow.variables];
@@ -46,61 +46,38 @@ function proses(flow){
         });
     }
 
-    //OK: Ekstrak semua elemen dan koneksi
+    // OK: Ekstrak semua elemen dan koneksi
     Object.keys(flow).forEach(key => {
         if (key.endsWith('assignments') || key.endsWith('transforms') || key.endsWith('decisions') || key.endsWith('loops') || key.endsWith('recordLookups') || key.endsWith('recordUpdates') || key.endsWith('recordCreates')) {
             const elemList = Array.isArray(flow[key]) ? flow[key] : [flow[key]];
             elemList.forEach(elem => {
-
-                // Simpan elements
                 const name = elem.name;
                 elements[name] = { name: name, type: key, data: elem };
 
-                // Simpan koneksi
-                if(key.endsWith('decisions')){
-                    // Default
+                if (key.endsWith('decisions')) {
                     connections[name] = elem.defaultConnectorLabel;
                     if (elem.defaultConnector?.targetReference) {
                         connections[elem.defaultConnectorLabel] = elem.defaultConnector.targetReference;
-                    }else{
+                    } else {
                         connections[elem.defaultConnectorLabel] = 'end';
                     }
-                    // Branch
+
                     const lstRules = Array.isArray(elem.rules) ? elem.rules : [elem.rules];
                     lstRules.forEach(r => {
                         if (r.connector?.targetReference) {
-                            let strLama = connections[name];
                             connections[name] = r.name;
-
-                            let strBaru = r.connector.targetReference;
-                            connections[r.name] = strBaru;
-
-                            while(connections[strBaru]){strBaru = connections[strBaru];}
-                            connections[strBaru] = strLama;
-                        }else{
-                            connections[name+'.'+r.name] = 'end';
+                            connections[r.name] = r.connector.targetReference;
+                        } else {
+                            connections[name + '.' + r.name] = 'end';
                         }
                     });
-
-                }else if(key.endsWith('loops')){
-                    let strLoop = elem.nextValueConnector?.targetReference;
-                    connections[name] = strLoop;
-                    if (elem.nextValueConnector?.targetReference) {
-                        connections[strLoop] = elem.noMoreValuesConnector?.targetReference;
-                    }else{
-                        connections[strLoop] = 'end';
-                    }
-
-
-                }else if (elem.connector?.targetReference) {
-                    let strTmp = name;
-                    if(!connections[strTmp]){
-                        connections[strTmp] = elem.connector.targetReference;
-                    }
-                }else {
+                } else if (key.endsWith('loops')) {
+                    connections[name] = elem.nextValueConnector?.targetReference || 'end';
+                } else if (elem.connector?.targetReference) {
+                    connections[name] = elem.connector.targetReference;
+                } else {
                     connections[name] = 'end';
                 }
-
             });
         } else if (key === 'start') {
             connections['start'] = flow.start.connector.targetReference;
@@ -110,7 +87,7 @@ function proses(flow){
     //--------------------- CREATE PUML ----------------------------------------
 
     // 01.Start
-    plantuml.push("start");
+    plantuml.push('start'); // Menggunakan single-quote untuk string
 
     // 02.Tambahkan input variable ke puml
     const inputVar = Object.keys(variables).find(k => variables[k].input);
@@ -120,7 +97,7 @@ function proses(flow){
 
     // 03.Proses alur utama
     let current = connections['start'];
-    let tab = prosesAlurUtama(current,1);
+    let tab = prosesAlurUtama(current, 1);
 
     // 04.Tambahkan output variable ke puml
     const outputVar = Object.keys(variables).find(k => variables[k].output);
@@ -129,7 +106,7 @@ function proses(flow){
     }
 
     // 05.Stop
-    plantuml.push("stop", "@enduml");
+    plantuml.push('stop', '@enduml'); // Menggunakan single-quote untuk string
     return plantuml.join('\n');
 }
 
@@ -140,7 +117,7 @@ function prosesAlurUtama(current, lvl) {
         const elem = elements[current];
         if (!elem) break;
 
-        //OK: 01.Record Lookup
+        // OK: 01.Record Lookup
         if (elem.type === 'recordLookups') {
             const obj = elem.data.object;
             const filters = [];
@@ -166,14 +143,13 @@ function prosesAlurUtama(current, lvl) {
             const rules = Array.isArray(elem.data.rules) ? elem.data.rules : [elem.data.rules];
             rules.forEach(rule => {
                 plantuml.push(`${tab}case ()`);
-                const arrCond = Array.isArray(rule.conditions)? rule.conditions:[rule.conditions];
-                arrCond.forEach(condition =>{
+                const arrCond = Array.isArray(rule.conditions) ? rule.conditions : [rule.conditions];
+                arrCond.forEach(condition => {
                     const left = condition.leftValueReference;
                     const op = condition.operator;
                     const right = condition.rightValue.numberValue;
                     plantuml.push(`${tabtab}:${rule.label}\n${tabtab}....\n${tabtab}${left} ${op} ${right};<<kondisi>>`);
 
-                    // Process the connector within the case
                     let caseCurrent = rule.connector.targetReference;
                     while (caseCurrent) {
                         const caseElem = elements[caseCurrent];
@@ -218,7 +194,6 @@ function prosesAlurUtama(current, lvl) {
                         }
                     }
                 });
-                
             });
 
             // Default case
@@ -266,8 +241,7 @@ function prosesAlurUtama(current, lvl) {
                 const conflictValue = elem.data.filters.stringValue;
                 plantuml.push(`:${action} ${obj} \n----\nSet ${inputs.join(', ')}\non conflict (${conflictField}) = "${conflictValue}";`);
             } else {
-                plantuml.push(`:${action} ${obj} \n----\nSet ${inputs.join(', ')}` + 
-                               (filters.length > 0 ? `\nwhere ${filters.join(' AND ')}` : '') + ';');
+                plantuml.push(`:${action} ${obj} \n----\nSet ${inputs.join(', ')}` + (filters.length > 0 ? `\nwhere ${filters.join(' AND ')}` : '') + ';');
             }
             current = connections[current];
         }
@@ -290,7 +264,7 @@ async function main(xmlFilePath, outputFile) {
     try {
         const flow = await parseSalesforceFlow(xmlFilePath);
         const plantumlCode = proses(flow);
-        fs.writeFile(outputFile, plantumlCode);
+        await fs.writeFile(outputFile, plantumlCode);
         console.log(`PlantUML berhasil dibuat: ${outputFile}`);
     } catch (err) {
         console.error('Error:', err);

@@ -13,7 +13,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/JimPuml.js"
+            "program": "${file}"
         }
     ]
 }

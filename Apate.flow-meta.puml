@@ -1,0 +1,40 @@
+@startuml
+<style>
+    element {
+        MinimumWidth 100
+        MaximumWidth 180
+    }
+    .kondisi {
+        FontSize 9
+        Padding 5
+        LineStyle 2
+        BackGroundColor transparent
+        HorizontalAlignment center
+    }
+</style>
+skinparam defaultFontName "verdana"
+start
+:start(start)  --> cur_Acc;
+:cur_Acc(recordLookups)  --> rst_Opty;
+:rst_Opty(recordLookups)  --> cek_Karyawan;
+switch (cek_Karyawan)
+case ()
+:Big_Size(rules)  --> set_Rating_Hot;
+:set_Rating_Hot(assignments)  --> set_Hot_Amount;
+:set_Hot_Amount(transforms)  --> rst_Contact;
+:rst_Contact(recordLookups)  --> c;
+:c(loops)  --> end;
+case ()
+:Medium_Size(rules)  --> set_Rating_Warm;
+:set_Rating_Warm(assignments)  --> set_Warm_Amount;
+:set_Warm_Amount(transforms)  --> rst_Contact;
+:rst_Contact(recordLookups)  --> c;
+:c(loops)  --> end;
+endswitch
+:cek_Karyawan(decisions)  --> set_Rating_Cold;
+:set_Rating_Cold(assignments)  --> set_Cold_Amount;
+:set_Cold_Amount(transforms)  --> rst_Contact;
+:rst_Contact(recordLookups)  --> c;
+:c(loops)  --> end;
+stop
+@enduml

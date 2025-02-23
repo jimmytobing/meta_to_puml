@@ -1,43 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <processType>AutoLaunchedFlow</processType>    
     <apiVersion>62.0</apiVersion>
-    <environments>Default</environments>
-    <interviewLabel>Gen_Python {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>[Gen] Python</label>    
-    <status>Active</status>
-
-    <variables>
-        <name>recordId_Acc</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>true</isInput>
-        <isOutput>false</isOutput>
-        <value>
-            <stringValue>001dM000002F6C8QAK</stringValue>
-        </value>
-    </variables>
-    <variables>
-        <name>varS_Rating</name>
-        <dataType>String</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>true</isOutput>
-    </variables>
-
-    <start>
-        <locationX>188</locationX>
-        <locationY>0</locationY>
-        <connector>
-            <targetReference>cur_Acc</targetReference>
-        </connector>
-    </start>
-
     <assignments>
         <name>set_IsPriorityRecord</name>
         <label>set IsPriorityRecord</label>
         <locationX>402</locationX>
-        <locationY>866</locationY>
+        <locationY>974</locationY>
         <assignmentItems>
             <assignToReference>c.IsPriorityRecord</assignToReference>
             <operator>Assign</operator>
@@ -53,7 +21,7 @@
         <name>set_Rating_Cold</name>
         <label>set Rating Cold</label>
         <locationX>578</locationX>
-        <locationY>350</locationY>
+        <locationY>458</locationY>
         <assignmentItems>
             <assignToReference>varS_Rating</assignToReference>
             <operator>Assign</operator>
@@ -61,12 +29,22 @@
                 <stringValue>Cold</stringValue>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varS_Output</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Colder</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>set_Cold_Amount</targetReference>
+        </connector>
     </assignments>
     <assignments>
         <name>set_Rating_Hot</name>
         <label>set Rating Hot</label>
         <locationX>50</locationX>
-        <locationY>350</locationY>
+        <locationY>458</locationY>
         <assignmentItems>
             <assignToReference>varS_Rating</assignToReference>
             <operator>Assign</operator>
@@ -74,15 +52,22 @@
                 <stringValue>Hot</stringValue>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varS_Output</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Hotter</stringValue>
+            </value>
+        </assignmentItems>
         <connector>
-            <targetReference>rst_Contact</targetReference>
+            <targetReference>set_Hot_Amount</targetReference>
         </connector>
     </assignments>
     <assignments>
         <name>set_Rating_Warm</name>
         <label>set Rating Warm</label>
         <locationX>314</locationX>
-        <locationY>350</locationY>
+        <locationY>458</locationY>
         <assignmentItems>
             <assignToReference>varS_Rating</assignToReference>
             <operator>Assign</operator>
@@ -90,20 +75,26 @@
                 <stringValue>Warm</stringValue>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varS_Output</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Warmer</stringValue>
+            </value>
+        </assignmentItems>
         <connector>
-            <targetReference>rst_Contact</targetReference>
+            <targetReference>set_Warm_Amount</targetReference>
         </connector>
     </assignments>
-    
     <decisions>
         <name>cek_Karyawan</name>
         <label>cek Karyawan</label>
         <locationX>314</locationX>
-        <locationY>242</locationY>
+        <locationY>350</locationY>
         <defaultConnector>
             <targetReference>set_Rating_Cold</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>NULL</defaultConnectorLabel>
+        <defaultConnectorLabel>Small Size</defaultConnectorLabel>
         <rules>
             <name>Big_Size</name>
             <conditionLogic>and</conditionLogic>
@@ -111,7 +102,14 @@
                 <leftValueReference>cur_Acc.NumberOfEmployees</leftValueReference>
                 <operator>GreaterThan</operator>
                 <rightValue>
-                    <numberValue>5000.0</numberValue>
+                    <numberValue>7000.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>cur_Acc.IsDeleted</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
@@ -120,27 +118,36 @@
             <label>Big Size</label>
         </rules>
         <rules>
-            <name>Small_Size</name>
+            <name>Medium_Size</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>cur_Acc.NumberOfEmployees</leftValueReference>
-                <operator>LessThanOrEqualTo</operator>
+                <operator>GreaterThan</operator>
                 <rightValue>
-                    <numberValue>5000.0</numberValue>
+                    <numberValue>3000.0</numberValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>cur_Acc.IsDeleted</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
                 <targetReference>set_Rating_Warm</targetReference>
             </connector>
-            <label>Small Size</label>
+            <label>Medium Size</label>
         </rules>
     </decisions>
-
+    <environments>Default</environments>
+    <interviewLabel>Apate {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Apate</label>
     <loops>
         <name>c</name>
         <label>c</label>
         <locationX>314</locationX>
-        <locationY>758</locationY>
+        <locationY>866</locationY>
         <collectionReference>rst_Contact</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
@@ -150,7 +157,6 @@
             <targetReference>save_Contact</targetReference>
         </noMoreValuesConnector>
     </loops>
-
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -169,12 +175,12 @@
             <stringValue>LightningFlowBuilder</stringValue>
         </value>
     </processMetadataValues>
-
+    <processType>AutoLaunchedFlow</processType>
     <recordCreates>
         <name>upsert_Account</name>
         <label>upsert Account</label>
         <locationX>314</locationX>
-        <locationY>1274</locationY>
+        <locationY>1382</locationY>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Name</field>
@@ -201,7 +207,6 @@
         <operationZeroMatchingRecords>AddRecord</operationZeroMatchingRecords>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordCreates>
-
     <recordLookups>
         <name>cur_Acc</name>
         <label>cur Acc</label>
@@ -209,7 +214,7 @@
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>cek_Karyawan</targetReference>
+            <targetReference>rst_Opty</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -217,6 +222,13 @@
             <operator>EqualTo</operator>
             <value>
                 <elementReference>recordId_Acc</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>CreatedDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
             </value>
         </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
@@ -227,7 +239,7 @@
         <name>rst_Contact</name>
         <label>rst Contact</label>
         <locationX>314</locationX>
-        <locationY>650</locationY>
+        <locationY>758</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>c</targetReference>
@@ -244,12 +256,51 @@
         <object>Contact</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
-
+    <recordLookups>
+        <name>rst_Opty</name>
+        <label>rst Opty</label>
+        <locationX>314</locationX>
+        <locationY>242</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>cek_Karyawan</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AccountId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId_Acc</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>CreatedDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordUpdates>
-        <name>save_Account</name>
-        <label>save Account</label>
+        <name>save_Contact</name>
+        <label>save Contact</label>
         <locationX>314</locationX>
         <locationY>1166</locationY>
+        <connector>
+            <targetReference>update_Account</targetReference>
+        </connector>
+        <inputReference>rst_Contact</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>update_Account</name>
+        <label>update Account</label>
+        <locationX>314</locationX>
+        <locationY>1274</locationY>
         <connector>
             <targetReference>upsert_Account</targetReference>
         </connector>
@@ -275,16 +326,136 @@
         </inputAssignments>
         <object>Account</object>
     </recordUpdates>
-    <recordUpdates>
-        <name>save_Contact</name>
-        <label>save Contact</label>
-        <locationX>314</locationX>
-        <locationY>1058</locationY>
+    <start>
+        <locationX>188</locationX>
+        <locationY>0</locationY>
         <connector>
-            <targetReference>save_Account</targetReference>
+            <targetReference>cur_Acc</targetReference>
         </connector>
-        <inputReference>rst_Contact</inputReference>
-    </recordUpdates>
-
-
+    </start>
+    <status>Active</status>
+    <transforms>
+        <name>set_Cold_Amount</name>
+        <label>set Cold Amount</label>
+        <locationX>578</locationX>
+        <locationY>566</locationY>
+        <connector>
+            <targetReference>rst_Contact</targetReference>
+        </connector>
+        <dataType>Currency</dataType>
+        <isCollection>false</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <inputParameters>
+                    <name>aggregationValues</name>
+                    <value>
+                        <elementReference>rst_Opty</elementReference>
+                    </value>
+                </inputParameters>
+                <inputParameters>
+                    <name>aggregationField</name>
+                    <value>
+                        <stringValue>Amount</stringValue>
+                    </value>
+                </inputParameters>
+                <transformType>Sum</transformType>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
+    <transforms>
+        <name>set_Hot_Amount</name>
+        <label>set Hot Amount</label>
+        <locationX>50</locationX>
+        <locationY>566</locationY>
+        <connector>
+            <targetReference>rst_Contact</targetReference>
+        </connector>
+        <dataType>Currency</dataType>
+        <isCollection>false</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <inputParameters>
+                    <name>aggregationValues</name>
+                    <value>
+                        <elementReference>rst_Opty</elementReference>
+                    </value>
+                </inputParameters>
+                <inputParameters>
+                    <name>aggregationField</name>
+                    <value>
+                        <stringValue>Amount</stringValue>
+                    </value>
+                </inputParameters>
+                <transformType>Sum</transformType>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
+    <transforms>
+        <name>set_Warm_Amount</name>
+        <label>set Warm Amount</label>
+        <locationX>314</locationX>
+        <locationY>566</locationY>
+        <connector>
+            <targetReference>rst_Contact</targetReference>
+        </connector>
+        <dataType>Currency</dataType>
+        <isCollection>false</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <inputParameters>
+                    <name>aggregationValues</name>
+                    <value>
+                        <elementReference>rst_Opty</elementReference>
+                    </value>
+                </inputParameters>
+                <inputParameters>
+                    <name>aggregationField</name>
+                    <value>
+                        <stringValue>Amount</stringValue>
+                    </value>
+                </inputParameters>
+                <transformType>Sum</transformType>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
+    <variables>
+        <name>recordId_Acc</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>001dM000002F6C8QAK</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <name>varS_Input</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>&quot;Input Baru&quot;</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <name>varS_Output</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>varS_Rating</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
 </Flow>
