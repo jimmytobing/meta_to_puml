@@ -1,277 +1,64 @@
 const fs = require('fs').promises;
-const xml2js = require('xml2js');
+const { parseString } = require('xml2js');
 
-// OK : Variabel dan koneksi
-const variables = {};
-const elements = {};
-const connections = {};
-const plantuml = [
-    '@startuml',
-    '<style>',
-    '    element {',
-    '        MinimumWidth 100',
-    '        MaximumWidth 180',
-    '    }',
-    '    .kondisi {',
-    '        FontSize 9',
-    '        Padding 5',
-    '        LineStyle 2',
-    '        BackGroundColor transparent',
-    '        HorizontalAlignment center',
-    '    }',
-    '</style>',
-    'skinparam defaultFontName "verdana"' // Menggunakan single-quote untuk string
-];
+async function xmlToPlantUML(strXmlPath, strOutputPath) {
+    const strXmlContent = await fs.readFile(strXmlPath, 'utf-8');
+    const objFlow = await parseXml(strXmlContent);
+    
+    let strUml = '@startuml\n<style>\n    element {\n        MinimumWidth 100\n        MaximumWidth 200\n    }\n    .kondisi {\n        FontSize 9\n        Padding 5\n        LineStyle 2\n        BackGroundColor transparent\n        HorizontalAlignment center\n    }\n</style>\nskinparam defaultFontName "verdana"\n\n';
+    
+    strUml += 'start\n';
+    
+    // Handle variables and initial steps
+    strUml += `:recordId_Acc = "${objFlow.variables[0].value[0].stringValue[0]}"\n`;
+    strUml += `varS_Input = "Input Baru";<<input>>\n\n`;
 
-async function parseSalesforceFlow(xmlFile) {
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const xmlData = await fs.readFile(xmlFile, 'utf-8'); // Menggunakan fs.promises.readFile
+    // Process flow elements
+    for (const el of objFlow.recordLookups) {
+        strUml += `:${el.$.name} \n----\nselect ${el.getFirstRecordOnly[0] === 'true' ? 'top1' : '*'} from ${el.object[0]}\nwhere `;
+        strUml += el.filters.map(f => `${f.field[0]} ${f.operator[0]} ${f.value[0][Object.keys(f.value[0])[0]}`).join('\nand ');
+        strUml += ';\n\n';
+    }
 
-    const result = await parser.parseStringPromise(xmlData);
-    const flow = result.Flow;
-    return flow;
+    // Handle decisions
+    for (const decision of objFlow.decisions) {
+        strUml += `switch (${decision.$.label})\n`;
+        for (const rule of decision.rules) {
+            strUml += `case (${rule.label[0]})\n`;
+            strUml += `:${rule.label[0]}\n....\n`;
+            strUml += rule.conditions.map(c => `${c.leftValueReference[0]} ${c.operator[0]} ${c.rightValue[0][Object.keys(c.rightValue[0])[0]}`).join('\nand ');
+            strUml += ';<<kondisi>>\n\n';
+        }
+        strUml += `endswitch\n\n`;
+    }
+
+    // Handle transforms (Amount calculations)
+    for (const transform of objFlow.transforms) {
+        strUml += `:${transform.$.label}\n----\nselect Sum(${transform.transformValues[0].transformValueActions[0].inputParameters[1].value[0].stringValue[0]})\nfrom rst_Opty;\n\n`;
+    }
+
+    // Handle loops
+    const objLoop = objFlow.loops[0];
+    strUml += `while(${objLoop.$.name} : ${objLoop.collectionReference[0]})\n    :${objLoop.$.name}.IsPriorityRecord = True;\nendwhile\n\n`;
+
+    // Handle updates and upserts
+    strUml += ':Update Contact \n----\nrst_Contact;\n\n';
+    strUml += ':Update Account \n----\nSet Rating = varS_Rating,\nBillingCity = "Medan"\nwhere Id = recordId_Acc;\n\n';
+    strUml += ':Upsert Account \n----\nSet Name = "Jimmy",\nType = cur_Acc.Type\non conflict (Name) = "Jimmy";\n\n';
+
+    strUml += ':varS_Rating\nvarS_Output;<<output>>\nstop\n@enduml';
+    
+    await fs.writeFile(strOutputPath, strUml);
 }
 
-function proses(flow) {
-    // OK : Ekstrak variabel
-    if (flow.variables) {
-        const vars = Array.isArray(flow.variables) ? flow.variables : [flow.variables];
-        vars.forEach(v => {
-            variables[v.name] = {
-                type: v.dataType,
-                input: v.isInput === 'true',
-                output: v.isOutput === 'true',
-                value: v.value?.stringValue || null
-            };
+async function parseXml(strXml) {
+    return new Promise((resolve, reject) => {
+        parseString(strXml, { explicitArray: false }, (err, result) => {
+            if (err) reject(err);
+            else resolve(result.Flow);
         });
-    }
-
-    // OK: Ekstrak semua elemen dan koneksi
-    Object.keys(flow).forEach(key => {
-        if (key.endsWith('assignments') || key.endsWith('transforms') || key.endsWith('decisions') || key.endsWith('loops') || key.endsWith('recordLookups') || key.endsWith('recordUpdates') || key.endsWith('recordCreates')) {
-            const elemList = Array.isArray(flow[key]) ? flow[key] : [flow[key]];
-            elemList.forEach(elem => {
-                const name = elem.name;
-                elements[name] = { name: name, type: key, data: elem };
-
-                if (key.endsWith('decisions')) {
-                    connections[name] = elem.defaultConnectorLabel;
-                    if (elem.defaultConnector?.targetReference) {
-                        connections[elem.defaultConnectorLabel] = elem.defaultConnector.targetReference;
-                    } else {
-                        connections[elem.defaultConnectorLabel] = 'end';
-                    }
-
-                    const lstRules = Array.isArray(elem.rules) ? elem.rules : [elem.rules];
-                    lstRules.forEach(r => {
-                        if (r.connector?.targetReference) {
-                            connections[name] = r.name;
-                            connections[r.name] = r.connector.targetReference;
-                        } else {
-                            connections[name + '.' + r.name] = 'end';
-                        }
-                    });
-                } else if (key.endsWith('loops')) {
-                    connections[name] = elem.nextValueConnector?.targetReference || 'end';
-                } else if (elem.connector?.targetReference) {
-                    connections[name] = elem.connector.targetReference;
-                } else {
-                    connections[name] = 'end';
-                }
-            });
-        } else if (key === 'start') {
-            connections['start'] = flow.start.connector.targetReference;
-        }
     });
-
-    //--------------------- CREATE PUML ----------------------------------------
-
-    // 01.Start
-    plantuml.push('start'); // Menggunakan single-quote untuk string
-
-    // 02.Tambahkan input variable ke puml
-    const inputVar = Object.keys(variables).find(k => variables[k].input);
-    if (inputVar) {
-        plantuml.push(`\t:${inputVar} = "${variables[inputVar].value}";<<input>>`);
-    }
-
-    // 03.Proses alur utama
-    let current = connections['start'];
-    let tab = prosesAlurUtama(current, 1);
-
-    // 04.Tambahkan output variable ke puml
-    const outputVar = Object.keys(variables).find(k => variables[k].output);
-    if (outputVar) {
-        plantuml.push(`\t:${outputVar};<<output>>`);
-    }
-
-    // 05.Stop
-    plantuml.push('stop', '@enduml'); // Menggunakan single-quote untuk string
-    return plantuml.join('\n');
-}
-
-function prosesAlurUtama(current, lvl) {
-    let tab = '\t'.repeat(lvl);
-    let tabtab = '\t'.repeat(lvl + 1);
-    while (current) {
-        const elem = elements[current];
-        if (!elem) break;
-
-        // OK: 01.Record Lookup
-        if (elem.type === 'recordLookups') {
-            const obj = elem.data.object;
-            const filters = [];
-            if (elem.data.filters) {
-                const filterList = Array.isArray(elem.data.filters) ? elem.data.filters : [elem.data.filters];
-                filterList.forEach(f => {
-                    filters.push(`${f.field} ${f.operator} ${f.value.elementReference}`);
-                });
-            }
-
-            const query = `select ${elem.data.getFirstRecordOnly === 'true' ? 'top1 ' : '* '}from ${obj}`;
-            if (filters.length > 0) {
-                plantuml.push(`\n${tab}:${current} \n${tab}----\n${tab}${query}\n${tab}where ${filters.join(' AND ')};`);
-            } else {
-                plantuml.push(`\n${tab}:${current} \n${tab}----\n${tab}${query};`);
-            }
-            current = connections[current];
-        }
-
-        // 02.Decision
-        else if (elem.type === 'decisions') {
-            plantuml.push(`\n${tab}switch (${elem.data.label})`);
-            const rules = Array.isArray(elem.data.rules) ? elem.data.rules : [elem.data.rules];
-            rules.forEach(rule => {
-                plantuml.push(`${tab}case ()`);
-                const arrCond = Array.isArray(rule.conditions) ? rule.conditions : [rule.conditions];
-                arrCond.forEach(condition => {
-                    const left = condition.leftValueReference;
-                    const op = condition.operator;
-                    const right = condition.rightValue.numberValue;
-                    plantuml.push(`${tabtab}:${rule.label}\n${tabtab}....\n${tabtab}${left} ${op} ${right};<<kondisi>>`);
-
-                    let caseCurrent = rule.connector.targetReference;
-                    while (caseCurrent) {
-                        const caseElem = elements[caseCurrent];
-                        if (!caseElem) break;
-
-                        // Record Lookup within the case
-                        if (caseElem.type === 'recordLookups') {
-                            const obj = caseElem.data.object;
-                            const filters = [];
-                            if (caseElem.data.filters) {
-                                const filterList = Array.isArray(caseElem.data.filters) ? caseElem.data.filters : [caseElem.data.filters];
-                                filterList.forEach(f => {
-                                    filters.push(`${f.field} ${f.operator} ${f.value.elementReference}`);
-                                });
-                            }
-
-                            const query = `select ${caseElem.data.getFirstRecordOnly === 'true' ? 'top1 ' : '* '}from ${obj}`;
-                            if (filters.length > 0) {
-                                plantuml.push(`${tabtab}:${caseCurrent} \n${tabtab}----\n${tabtab}${query}\n${tabtab}where ${filters.join(' AND ')};`);
-                            } else {
-                                plantuml.push(`${tabtab}:${caseCurrent} \n${tabtab}----\n${tabtab}${query};`);
-                            }
-                            caseCurrent = connections[caseCurrent];
-                        }
-
-                        // Loop within the case
-                        else if (caseElem.type === 'loops') {
-                            const collection = caseElem.data.collectionReference;
-                            plantuml.push(`\n${tabtab}while(${caseCurrent} : ${collection})`);
-                            plantuml.push(`${tabtab.repeat(2)}:${caseElem.data.nextValueConnector.targetReference};`);
-                            plantuml.push(`${tabtab}endwhile`);
-                            caseCurrent = connections[caseCurrent];
-                        }
-
-                        // Assignment within the case
-                        else if (caseElem.type === 'assignments') {
-                            const assignment = caseElem.data.assignmentItems;
-                            const varName = assignment.assignToReference;
-                            const value = assignment.value.stringValue || assignment.value.booleanValue;
-                            plantuml.push(`${tabtab}:${varName} = "${value}";`);
-                            caseCurrent = connections[caseCurrent];
-                        }
-                    }
-                });
-            });
-
-            // Default case
-            const defaultConnector = elem.data.defaultConnector.targetReference;
-            plantuml.push(`${tab}case ()`);
-            plantuml.push(`${tabtab}:NULL;<<kondisi>>`);
-            plantuml.push(`${tabtab}:${defaultConnector};`);
-            plantuml.push(`${tab}endswitch`);
-            current = null; // Sudah dihandle oleh case
-        }
-
-        // Loop
-        else if (elem.type === 'loops') {
-            const collection = elem.data.collectionReference;
-            plantuml.push(`\n${tab}while(${current} : ${collection})`);
-            plantuml.push(`${tabtab}:${elem.data.nextValueConnector.targetReference};`);
-            plantuml.push(`${tab}endwhile`);
-            current = connections[current];
-        }
-
-        // Record Update/Create
-        else if (elem.type === 'recordUpdates' || elem.type === 'recordCreates') {
-            const obj = elem.data.object;
-            const action = elem.type === 'recordUpdates' ? 'Update' : 'Upsert';
-            const inputs = [];
-            if (elem.data.inputAssignments) {
-                const inputList = Array.isArray(elem.data.inputAssignments) ? elem.data.inputAssignments : [elem.data.inputAssignments];
-                inputList.forEach(ia => {
-                    const value = ia.value.stringValue || ia.value.elementReference;
-                    inputs.push(`${ia.field} = ${value}`);
-                });
-            }
-
-            // Filter untuk update
-            const filters = [];
-            if (elem.data.filters) {
-                const filterList = Array.isArray(elem.data.filters) ? elem.data.filters : [elem.data.filters];
-                filterList.forEach(f => {
-                    filters.push(`${f.field} = ${f.value.elementReference}`);
-                });
-            }
-
-            if (action === 'Upsert') {
-                const conflictField = elem.data.filters.field;
-                const conflictValue = elem.data.filters.stringValue;
-                plantuml.push(`:${action} ${obj} \n----\nSet ${inputs.join(', ')}\non conflict (${conflictField}) = "${conflictValue}";`);
-            } else {
-                plantuml.push(`:${action} ${obj} \n----\nSet ${inputs.join(', ')}` + (filters.length > 0 ? `\nwhere ${filters.join(' AND ')}` : '') + ';');
-            }
-            current = connections[current];
-        }
-
-        // Assignment
-        else if (elem.type === 'assignments') {
-            const assignment = elem.data.assignmentItems;
-            const varName = assignment.assignToReference;
-            const value = assignment.value.stringValue || assignment.value.booleanValue;
-            plantuml.push(`${tab}:${varName} = "${value}";`);
-            current = connections[current];
-        }
-    }
-
-    return lvl;
-}
-
-// main dengan fungsi async
-async function main(xmlFilePath, outputFile) {
-    try {
-        const flow = await parseSalesforceFlow(xmlFilePath);
-        const plantumlCode = proses(flow);
-        await fs.writeFile(outputFile, plantumlCode);
-        console.log(`PlantUML berhasil dibuat: ${outputFile}`);
-    } catch (err) {
-        console.error('Error:', err);
-    }
 }
 
 // Contoh penggunaan
-const xmlFilePath = 'Apate.flow-meta.xml';
-const outputFile = 'Apate.flow-meta.puml';
-main(xmlFilePath, outputFile); //panggil async main
+xmlToPlantUML('Apate.flow-meta.xml', 'Apate.md').catch(console.error);

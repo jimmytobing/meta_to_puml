@@ -68,19 +68,35 @@ function generatePumlLine(strNext){
         //recursive
         arrRules = Array.isArray(objCur.data.rules)? objCur.data.rules : [objCur.data.rules];
         arrRules.forEach(rule => {
-            arrPuml.push(`case ()`);
+            arrPuml.push(`case (${rule.name})`);
             let strNext2 = rule.name;
             while(strNext2){
                 strNext2 = generatePumlLine(strNext2);
             }
         });
+
+        //default decision
+            arrPuml.push(`case (${objCur.data.defaultConnectorLabel})`);
+            let strNext3 = objCur.data.defaultConnectorLabel;
+            let strNext4 = objCur.data.defaultConnector.targetReference;
+            objElements[strNext3] = {name:strNext3, type: 'rules', data: {connector:{targetReference:strNext4}} };
+            objElements[strBefore] = null;
+            while(strNext3){
+                strNext3 = generatePumlLine(strNext3);
+            }
+
         arrPuml.push(`endswitch`);
     }else{
+        arrPuml.push(`:${strBefore}(${objCur.type})  --> ${objCur.next};`);
         strNext = objCur.data.connector?.targetReference;
     }
-    objCur['next'] = (strNext)?strNext:'end';
+
+    if(objCur['next']){
+        console.log(`Sudah ada ${objCur['next']}`);
+    }else{
+        objCur['next'] = (strNext)?strNext:'end';
+    }
     //console.log(`processed: ${strBefore}(${objCur.type}) --> ${objCur.next}`);
-    arrPuml.push(`:${strBefore}(${objCur.type})  --> ${objCur.next};`);
     return strNext;
 }
 

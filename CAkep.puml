@@ -2,7 +2,7 @@
 <style>
     element {
         MinimumWidth 100
-        MaximumWidth 180
+        MaximumWidth 200
     }
     .kondisi {
         FontSize 9
@@ -15,28 +15,64 @@
 skinparam defaultFontName "verdana"
 
 start
-:recordId_Acc = "001dM000002F6C8QAK";<<input>>
+:recordId_Acc = "001dM000002F6C8QAK"
+varS_Input = "Input Baru";<<input>>
 
 :cur_Acc 
 ----
 select top1 from Account 
 where Id = recordId_Acc;
 
+:rst_Opty 
+----
+select * from Opportunity 
+where AccountId = recordId_Acc
+and CreatedDate IsNull False
+order by CreatedDate Desc;
+
 switch (cek Karyawan)
-case ()
+case (Big Size)
     :Big Size
     ....
-    cur_Acc.NumberOfEmployees > 5000;<<kondisi>>
-    :varS_Rating = "Hot"; 
-case ()
-    :Small Size
+    cur_Acc.NumberOfEmployees > 7000
+    and cur_Acc.IsDeleted EqualTo False;<<kondisi>>
+    
+    :varS_Rating = "Hot"
+    varS_Output = "Hotter"; 
+
+    :set_Hot_Amount
+    ----
+    select Sum(Amount)
+    from rst_Opty;
+case (Medium Size)
+    :Medium Size
     ....
-    cur_Acc.NumberOfEmployees <= 5000;<<kondisi>>
-    :varS_Rating = "Warm"; 
-case ()
-    :NULL;<<kondisi>>
-    :varS_Rating = "Cold"; 
-    end
+    cur_Acc.NumberOfEmployees > 3000
+    and cur_Acc.IsDeleted EqualTo False;<<kondisi>>
+    
+    :varS_Rating = "Warm"
+    varS_Output = "Warmer"; 
+
+    :set_Warm_Amount
+    ----
+    select Sum(Amount)
+    from rst_Opty;
+
+    switch(cek Amount)
+        case (Keren)
+            :varS_Output = "Warmer Keren";
+        case (Biasa)
+    endswitch
+case (Small Size)
+    :Small Size;<<kondisi>>
+    
+    :varS_Rating = "Cold"
+    varS_Output = "Colder"; 
+
+    :set_Cold_Amount
+    ----
+    select Sum(Amount)
+    from rst_Opty;
 endswitch
 
 :rst_Contact 
@@ -64,6 +100,7 @@ Set Name = "Jimmy",
 Type = cur_Acc.Type
 on conflict (Name) = "Jimmy";
 
-:varS_Rating;<<output>>
+:varS_Rating
+varS_Output;<<output>>
 stop
 @enduml
