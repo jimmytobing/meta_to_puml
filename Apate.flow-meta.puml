@@ -14,43 +14,31 @@
 </style>
 skinparam defaultFontName "verdana"
 start
-:start(start)  --> undefined;
-:cur_Acc(recordLookups)  --> undefined;
-:rst_Opty(recordLookups)  --> undefined;
+:start(start)  --> cur_Acc;
+:cur_Acc(recordLookups)  --> rst_Opty;
+:rst_Opty(recordLookups)  --> cek_Karyawan;
 switch (cek_Karyawan)
 case (Big_Size)
-:Big_Size(rules)  --> undefined;
-:set_Rating_Hot(assignments)  --> undefined;
-:set_Hot_Amount(transforms)  --> undefined;
-:rst_Contact(recordLookups)  --> undefined;
-:c(loops)  --> undefined;
+	:Big_Size(rules)  --> set_Rating_Hot;<<kondisi>>
+	:set_Rating_Hot(assignments)  --> set_Hot_Amount;
+	:set_Hot_Amount(transforms)  --> rst_Contact;
 case (Medium_Size)
-:Medium_Size(rules)  --> undefined;
-:set_Rating_Warm(assignments)  --> undefined;
-:set_Warm_Amount(transforms)  --> undefined;
-switch (cek_Amount)
+	:Medium_Size(rules)  --> set_Rating_Warm;<<kondisi>>
+	:set_Rating_Warm(assignments)  --> set_Warm_Amount;
+	:set_Warm_Amount(transforms)  --> cek_Amount;
+	switch (cek_Amount)
 case (Keren)
-:Keren(rules)  --> undefined;
-:set_Output(assignments)  --> undefined;
-:rst_Contact(recordLookups)  --> c;
-:c(loops)  --> end;
+	:Keren(rules)  --> set_Output;<<kondisi>>
+	:set_Output(assignments)  --> rst_Contact;
 case (Biasa)
-:Biasa(rules)  --> undefined;
-:rst_Contact(recordLookups)  --> c;
-:c(loops)  --> end;
+	:Biasa('rules')  --> rst_Contact;<<kondisi>>
 endswitch
-:rst_Contact(recordLookups)  --> c;
-:c(loops)  --> end;
 case (Small Size)
-:Small Size(rules)  --> undefined;
-:set_Rating_Cold(assignments)  --> undefined;
-:set_Cold_Amount(transforms)  --> undefined;
-:rst_Contact(recordLookups)  --> c;
-:c(loops)  --> end;
+	:Small Size('rules')  --> set_Rating_Cold;<<kondisi>>
+	:set_Rating_Cold(assignments)  --> set_Cold_Amount;
+	:set_Cold_Amount(transforms)  --> rst_Contact;
 endswitch
-:set_Rating_Cold(assignments)  --> set_Cold_Amount;
-:set_Cold_Amount(transforms)  --> rst_Contact;
 :rst_Contact(recordLookups)  --> c;
-:c(loops)  --> end;
+:c(loops)  --> undefined;
 stop
 @enduml
