@@ -153,7 +153,7 @@ function prosesAlurUtama(current, lvl) {
 
             const query = `select ${elem.data.getFirstRecordOnly === 'true' ? 'top1 ' : '* '}from ${obj}`;
             if (filters.length > 0) {
-                plantuml.push(`\n${tab}:${current} \n${tab}----\n${tab}${query}\n${tab}where ${filters.join(' AND ')};`);
+                plantuml.push(`\n${tab}:${current} \n${tab}----\n${tab}${query}\n${tab}where ${filters.join(' \nAND ')};`);
             } else {
                 plantuml.push(`\n${tab}:${current} \n${tab}----\n${tab}${query};`);
             }

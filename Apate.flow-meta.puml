@@ -14,36 +14,73 @@
 </style>
 skinparam defaultFontName "verdana"
 start
-:start(start)  --> cur_Acc;
-:cur_Acc(recordLookups)  --> rst_Opty;
-:rst_Opty(recordLookups)  --> cek_Karyawan;
+:recordId_Acc = "001dM000002F6C8QAK";<<input>>
+:varS_Input = ""Input Baru"";<<input>>
+
+:cur_Acc 
+----
+select top1 from Account 
+where Id EqualTo recordId_Acc
+AND CreatedDate IsNull undefined;
+:rst_Opty 
+----
+select * from Opportunity 
+where AccountId EqualTo recordId_Acc
+AND CreatedDate IsNull undefined;
 switch (cek_Karyawan)
 case (Big_Size)
-	:Big_Size(rules)  --> set_Rating_Hot;<<kondisi>>
-	:set_Rating_Hot(assignments)  --> set_Hot_Amount;
+	:Big Size
+....
+cur_Acc.NumberOfEmployees GreaterThan 7000.0
+cur_Acc.IsDeleted EqualTo undefined;<<kondisi>>
+	:varS_Rating = "Hot";
+:varS_Output = "Hotter";
 	:set_Hot_Amount(transforms)  --> rst_Contact;
 case (Medium_Size)
-	:Medium_Size(rules)  --> set_Rating_Warm;<<kondisi>>
-	:set_Rating_Warm(assignments)  --> set_Warm_Amount;
+	:Medium Size
+....
+cur_Acc.NumberOfEmployees GreaterThan 3000.0
+cur_Acc.IsDeleted EqualTo undefined;<<kondisi>>
+	:varS_Rating = "Warm";
+:varS_Output = "Warmer";
 	:set_Warm_Amount(transforms)  --> cek_Amount;
 	switch (cek_Amount)
 case (Keren)
-	:Keren(rules)  --> set_Output;<<kondisi>>
-	:set_Output(assignments)  --> rst_Contact;
+	:Keren
+....
+set_Warm_Amount GreaterThan 4000.0;<<kondisi>>
+	:varS_Output = "Warmer Keren";
 case (Biasa)
-	:Biasa('rules')  --> rst_Contact;<<kondisi>>
+	:Biasa;<<kondisi>>
 endswitch
 case (Small Size)
-	:Small Size('rules')  --> set_Rating_Cold;<<kondisi>>
-	:set_Rating_Cold(assignments)  --> set_Cold_Amount;
+	:Small Size;<<kondisi>>
+	:varS_Rating = "Cold";
+:varS_Output = "Colder";
 	:set_Cold_Amount(transforms)  --> rst_Contact;
 endswitch
-:rst_Contact(recordLookups)  --> c;
+:rst_Contact 
+----
+select * from Contact 
+where AccountId EqualTo cur_Acc.Id;
 while(c : rst_Contact)
-	:set_IsPriorityRecord(assignments)  --> c;
+	:c.IsPriorityRecord = "true";
 endwhile
-:save_Contact(recordUpdates)  --> update_Account;
-:update_Account(recordUpdates)  --> upsert_Account;
-:upsert_Account(recordCreates)  --> undefined;
+:Update 
+----
+rst_Contact;
+:Update Account 
+----
+Set BillingCity = Medan, Rating = varS_Rating
+where 
+Id = recordId_Acc;
+:Upsert Account 
+----
+Set Name = Jimmy,
+Type = cur_Acc.Type
+----
+on conflict (Name);
+:varS_Output;<<output>>
+:varS_Rating;<<output>>
 stop
 @enduml
