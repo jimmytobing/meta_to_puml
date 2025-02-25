@@ -56,10 +56,11 @@ function generatePUML(objFlow){
 function generatePumlLine(strKey){
     let retval = '';
     const objCur = objElements[strKey];
+    let arrTmp = [];
 
     // 01.decisions
     if(objCur.type === 'decisions'){
-        const arrTmp = [];
+        arrTmp = [];
         arrTmp.push(`switch (${strKey})`);
             //-------------------------------------
             const arrRules = Array.isArray(objCur.zdata.rules)? objCur.zdata.rules : [objCur.zdata.rules];
@@ -88,9 +89,18 @@ function generatePumlLine(strKey){
         retval = arrTmp.join('\n');
     }
 
-    // 02.loop
-    else if(objCur.type === 'loop'){
-        
+    // 02.loops
+    else if(objCur.type === 'loops'){
+        const elem = objCur.zdata;
+        const collection = elem.collectionReference;
+        arrTmp = [];
+        //-------------------------------------
+        arrTmp.push(`while(${objCur.name} : ${collection})`);
+        let strTmp = elem.nextValueConnector.targetReference;
+        arrTmp.push(`\t`+generatePumlLine(strTmp));
+        arrTmp.push(`endwhile`);
+        //-------------------------------------        
+        retval = arrTmp.join('\n');
     }
     
     // 03.other
@@ -158,7 +168,7 @@ function cariNext(strParentKey,objData){
     }
 
     // 02.loop
-    else if(strParentKey==='loop'){
+    else if(strParentKey==='loops'){
         strNext = (strNext)? strNext : objData.noMoreValuesConnector?.targetReference; 
     }
 

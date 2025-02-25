@@ -39,6 +39,11 @@ case (Small Size)
 	:set_Cold_Amount(transforms)  --> rst_Contact;
 endswitch
 :rst_Contact(recordLookups)  --> c;
-:c(loops)  --> undefined;
+while(c : rst_Contact)
+	:set_IsPriorityRecord(assignments)  --> c;
+endwhile
+:save_Contact(recordUpdates)  --> update_Account;
+:update_Account(recordUpdates)  --> upsert_Account;
+:upsert_Account(recordCreates)  --> undefined;
 stop
 @enduml
