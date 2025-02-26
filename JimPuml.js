@@ -1,6 +1,16 @@
 const fs = require('fs').promises;
+const { equal } = require('assert');
 const { streetviewpublish } = require('googleapis/build/src/apis/streetviewpublish');
 const xml2js = require('xml2js');
+
+const opr ={
+    EqualTo : "=",
+    IsNull : "null",
+    GreaterThan : ">",
+    GreaterThanEqual : ">=",
+    LessThan : "<",
+    LessThanEqual : "<="
+}
 
 async function parseSfMeta(xmlData) {
     const parser = new xml2js.Parser({ explicitArray: false });
@@ -115,11 +125,6 @@ function generatePumlLine(strKey){
     else if (objCur.type === 'assignments') {
         retval = pumlAssignments(objCur);
     }
-
-    // 07.variables
-    else if (objCur.type === 'variables') {
-        retval = pumlVariables(objCur);
-    }
     
     // 99.other
     else{
@@ -130,18 +135,14 @@ function generatePumlLine(strKey){
     return retval;
 }
 
-function pumlVariables(){
-
-}
-
 function pumlRules(objCur){
     const plantuml = [];
     const rule = objCur.data;
     const arrCond = Array.isArray(rule.conditions)? rule.conditions:[rule.conditions];
     arrCond.forEach(condition =>{
         const left = condition.leftValueReference;
-        const op = condition.operator;
-        const right = condition.rightValue.numberValue;
+        const op = opr[condition.operator];
+        const right = condition.rightValue.numberValue || condition.rightValue.booleanValue || condition.rightValue.stringValue;
         plantuml.push(`${left} ${op} ${right}`);
     });
     //-------------------------------------
@@ -241,7 +242,8 @@ function pumlRecLookups(objCur){
     if (elem.filters) {
         const filterList = Array.isArray(elem.filters) ? elem.filters : [elem.filters];
         filterList.forEach(f => {
-            filters.push(`${f.field} ${f.operator} ${f.value.elementReference}`);
+            const value = f.value.elementReference || f.value.booleanValue;
+            filters.push(`${f.field} ${opr[f.operator]} ${value}`);
         });
     }
     //-------------------------------------

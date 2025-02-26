@@ -20,27 +20,27 @@ start
 :cur_Acc 
 ----
 select top1 from Account 
-where Id EqualTo recordId_Acc
-AND CreatedDate IsNull undefined;
+where Id = recordId_Acc
+AND CreatedDate null false;
 :rst_Opty 
 ----
 select * from Opportunity 
-where AccountId EqualTo recordId_Acc
-AND CreatedDate IsNull undefined;
+where AccountId = recordId_Acc
+AND CreatedDate null false;
 switch (cek_Karyawan)
 case (Big_Size)
 	:Big Size
 ....
-cur_Acc.NumberOfEmployees GreaterThan 7000.0
-cur_Acc.IsDeleted EqualTo undefined;<<kondisi>>
+cur_Acc.NumberOfEmployees > 7000.0
+cur_Acc.IsDeleted = false;<<kondisi>>
 	:varS_Rating = "Hot";
 :varS_Output = "Hotter";
 	:set_Hot_Amount(transforms)  --> rst_Contact;
 case (Medium_Size)
 	:Medium Size
 ....
-cur_Acc.NumberOfEmployees GreaterThan 3000.0
-cur_Acc.IsDeleted EqualTo undefined;<<kondisi>>
+cur_Acc.NumberOfEmployees > 3000.0
+cur_Acc.IsDeleted = false;<<kondisi>>
 	:varS_Rating = "Warm";
 :varS_Output = "Warmer";
 	:set_Warm_Amount(transforms)  --> cek_Amount;
@@ -48,7 +48,7 @@ cur_Acc.IsDeleted EqualTo undefined;<<kondisi>>
 case (Keren)
 	:Keren
 ....
-set_Warm_Amount GreaterThan 4000.0;<<kondisi>>
+set_Warm_Amount > 4000.0;<<kondisi>>
 	:varS_Output = "Warmer Keren";
 case (Biasa)
 	:Biasa;<<kondisi>>
@@ -62,7 +62,7 @@ endswitch
 :rst_Contact 
 ----
 select * from Contact 
-where AccountId EqualTo cur_Acc.Id;
+where AccountId = cur_Acc.Id;
 while(c : rst_Contact)
 	:c.IsPriorityRecord = "true";
 endwhile
